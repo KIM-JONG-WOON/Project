@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="org.gocamping.mapper.campMapper">
+  	
+  	<select id="getList" resultType="org.gocamping.domain.campVO">
+ 		<![CDATA[
+ 			select * from camp_tbl 
+ 			where cno > 0
+ 		]]>
+ 	</select> 
+ 
+ 	<select id="getListWithSearching" resultType="org.gocamping.domain.campVO">
+ 		<![CDATA[
+ 			select * from camp_tbl 
+ 			where cname like '%'||#{keyword}||'%' and site like '%'||#{region}||'%' and theme like '%'||#{theme}||'%'
+ 		]]>
+ 	</select>
+ 	
+ 	<select id="get" resultType="org.gocamping.domain.campVO">
+ 		<![CDATA[
+ 			select * from camp_tbl 
+ 			where cno = #{cno}
+ 		]]>
+ 	</select>
+  </mapper>
