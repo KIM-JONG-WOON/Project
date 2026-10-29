@@ -1,0 +1,170 @@
+<title>보고서 주석 첫 화면</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@600;700&display=swap">
+<style>
+/* 레이아웃: 폰 기준 한 줄 기둥. 위쪽 가운데 고정 프롬프트 탭, 화면 가운데 보고서 입력창 하나 */
+:root{
+  --bg:#faf9f5; --surface:#ffffff; --ink:#1f1e1d; --muted:#6f6d66; --line:#e6e3da;
+  --accent:#d97757; --accent-soft:#f6e4da; --accent-ink:#ffffff; --off:#d9d6cc;
+  --f-mark:"Noto Serif KR","Nanum Myeongjo",serif;
+  --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#262624; --surface:#30302e; --ink:#f2f0ea; --muted:#a8a59c; --line:#3e3d39;
+  --accent:#e08a6d; --accent-soft:#4a3329; --accent-ink:#1f1e1d; --off:#4a4944; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#262624; --surface:#30302e; --ink:#f2f0ea; --muted:#a8a59c; --line:#3e3d39;
+  --accent:#e08a6d; --accent-soft:#4a3329; --accent-ink:#1f1e1d; --off:#4a4944; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,textarea,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.page{max-width:600px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+.page>*{min-width:0}
+
+/* 위: 고정 프롬프트 */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%;max-width:480px;margin:0 auto}
+.tab{min-width:0;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:6px 4px;font-size:13px;font-weight:500;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.fixed{border:1px solid var(--line);background:var(--surface);border-radius:12px;font-size:13px}
+.fixed-h{all:unset;box-sizing:border-box;width:100%;display:flex;gap:8px;align-items:center;padding:9px 12px;cursor:pointer;border-radius:12px}
+.fixed-h:focus-visible{outline:2px solid var(--accent)}
+.fixed-k{flex:none;font-size:11px;font-weight:600;color:var(--accent);letter-spacing:.02em}
+.fixed-p{flex:1;min-width:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chev{flex:none;width:16px;height:16px;color:var(--muted);transition:transform .2s}
+.fixed[data-open="true"] .chev{transform:rotate(180deg)}
+.fixed-body{padding:0 12px 12px;display:grid;gap:6px}
+.fixed-body textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:8px 10px;resize:vertical;line-height:1.6;font-size:13px}
+.fixed-body small{color:var(--muted);font-size:11.5px}
+
+/* 가운데: 보고서 입력 */
+.center{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;padding-block:24px 32px}
+.mark{text-align:center;font-family:var(--f-mark);font-weight:700;font-size:clamp(28px,8vw,38px);letter-spacing:-.01em;margin:0;line-height:1.2}
+.mark .pen{position:relative;color:var(--accent)}
+.mark svg{position:absolute;left:-4%;bottom:-.32em;width:108%;height:.42em;overflow:visible}
+.mark path{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round}
+.sub{text-align:center;color:var(--muted);font-size:14px;margin:-8px 0 0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px 14px 10px 18px;box-shadow:0 1px 2px rgba(40,30,20,.04),0 6px 22px rgba(40,30,20,.06);display:grid;gap:8px;transition:border-color .15s,box-shadow .15s}
+.box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.box textarea{border:0;background:none;outline:none;resize:none;width:100%;min-height:52px;max-height:40vh;line-height:1.6;font-size:15.5px;padding:2px 0}
+.box textarea::placeholder{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:5px 6px 5px 8px;font-size:12.5px}
+.chip .ext{flex:none;font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 5px;text-transform:uppercase}
+.chip .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip button{border:0;background:none;color:var(--muted);padding:0 4px;font-size:15px;line-height:1}
+.tools{display:flex;align-items:center;gap:8px}
+.icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--muted)}
+.icon-btn:hover{color:var(--ink);background:var(--bg)}
+.icon-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.icon-btn svg,.send svg{width:18px;height:18px}
+.tools .hint{flex:1;min-width:0;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.send{width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--accent);color:var(--accent-ink);transition:background .15s}
+.send:disabled{background:var(--off);cursor:not-allowed}
+.alt{display:flex;justify-content:center}
+.alt button{display:inline-flex;gap:6px;align-items:center;border:0;background:none;color:var(--muted);font-size:13.5px;padding:6px 10px;border-radius:8px}
+.alt button:hover{color:var(--ink);background:var(--surface)}
+.alt svg{width:16px;height:16px}
+.alt small{color:var(--muted);opacity:.8}
+.foot{text-align:center;font-size:12px;color:var(--muted);padding-block:12px calc(16px + env(safe-area-inset-bottom,0px))}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:20;max-width:calc(100vw - 32px)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="page">
+  <header class="top">
+    <div class="tabs" id="tabs" role="tablist" aria-label="고정 프롬프트"></div>
+    <div class="fixed" id="fixed" data-open="false">
+      <button class="fixed-h" id="fixedToggle" aria-expanded="false" aria-controls="fixedBody">
+        <span class="fixed-k">고정 프롬프트</span>
+        <span class="fixed-p" id="fixedPreview"></span>
+        <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="fixed-body" id="fixedBody" hidden>
+        <textarea id="fixedText" aria-label="고정 프롬프트 내용"></textarea>
+        <small>이 탭으로 보고서를 만들 때마다 앞에 붙는 지시문입니다. 고친 내용은 이 탭에 남습니다.</small>
+      </div>
+    </div>
+  </header>
+
+  <main class="center">
+    <div>
+      <h1 class="mark">보고서 <span class="pen">주석<svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 14 2, 22 12, 34 6 S 56 2, 66 7 S 88 11, 98 4"/></svg></span></h1>
+    </div>
+    <p class="sub">만들 보고서의 주제와 방향을 적어 주세요.</p>
+    <form class="box" id="box">
+      <textarea id="topic" rows="2" placeholder="예: 3분기 사내 문서 디지털화 추진 현황, 경영진 보고용으로 2쪽 분량"></textarea>
+      <div class="chips" id="chips"></div>
+      <div class="tools">
+        <span class="icon-btn" title="파일 첨부">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M14.5 9.5l-5.3 5.3a3.2 3.2 0 01-4.5-4.5l6-6a2.1 2.1 0 013 3l-6 6a1 1 0 01-1.5-1.5l5.3-5.3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="file" id="files" multiple aria-label="참고 자료 첨부">
+        </span>
+        <span class="hint" id="hint">엑셀·문서·이미지 첨부 가능</span>
+        <button class="send" id="send" type="submit" disabled aria-label="보고서 만들기">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 15.5v-11M5.5 9L10 4.5 14.5 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </form>
+    <div class="alt">
+      <button type="button" id="importBtn">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3.5h6.5L15 7v9.5H5z M11.5 3.5V7H15 M10 9.5v5 M7.8 12.3L10 14.5l2.2-2.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        기존 파일 불러오기 <small>DOCX · TXT · MD</small>
+      </button>
+    </div>
+  </main>
+
+  <footer class="foot">내 Claude 계정으로 작성되고 수정됩니다</footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tabs=[
+  {name:'업무 보고',text:'한국어 업무 보고서를 작성한다. 구성은 개요, 추진 현황, 문제점, 개선 방안, 향후 계획. 각 절은 2~3개 문단, 보고서 문체(~다)로 간결하게 쓴다.'},
+  {name:'결과 보고',text:'끝난 일의 결과 보고서를 작성한다. 목표 대비 실적을 숫자로 먼저 보여 주고, 잘된 점과 아쉬운 점, 다음에 바꿀 점을 정리한다.'},
+  {name:'제안서',text:'의사결정자를 위한 제안서를 작성한다. 제안 배경, 목표, 추진 내용, 기대 효과, 일정과 예산 순서로 핵심부터 쓴다.'},
+  {name:'회의록',text:'회의 내용을 회의록으로 정리한다. 일시와 참석자, 안건별 논의 내용, 결정 사항, 담당자와 기한이 있는 할 일 순서로 쓴다.'},
+  {name:'기획안',text:'새 일을 시작하기 위한 기획안을 작성한다. 배경과 문제 정의, 목표, 실행 방안, 필요한 자원, 위험 요소와 대응을 담는다.'}
+];
+let cur=0, files=[];
+
+function drawTabs(){
+  $('#tabs').innerHTML=tabs.map((t,i)=>`<button class="tab" role="tab" aria-selected="${i===cur}" data-i="${i}">${esc(t.name)}</button>`).join('');
+  $('#fixedPreview').textContent=tabs[cur].text;
+  $('#fixedText').value=tabs[cur].text;
+}
+$('#tabs').onclick=e=>{const b=e.target.closest('[data-i]');if(!b)return;cur=+b.dataset.i;drawTabs()};
+$('#fixedToggle').onclick=()=>{const f=$('#fixed'),open=f.dataset.open!=='true';f.dataset.open=open;$('#fixedBody').hidden=!open;$('#fixedToggle').setAttribute('aria-expanded',open)};
+$('#fixedText').oninput=e=>{tabs[cur].text=e.target.value;$('#fixedPreview').textContent=e.target.value};
+
+const topic=$('#topic');
+function sync(){topic.style.height='auto';topic.style.height=topic.scrollHeight+'px';$('#send').disabled=!topic.value.trim()}
+topic.addEventListener('input',sync);
+topic.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();if(topic.value.trim())$('#box').requestSubmit()}});
+
+function drawChips(){
+  $('#chips').innerHTML=files.map((f,i)=>`<span class="chip"><span class="ext">${esc((f.name.split('.').pop()||'파일').slice(0,4))}</span><span class="nm">${esc(f.name)}</span><button type="button" data-i="${i}" aria-label="${esc(f.name)} 빼기">×</button></span>`).join('');
+  $('#hint').textContent=files.length?`참고 자료 ${files.length}개`:'엑셀·문서·이미지 첨부 가능';
+}
+$('#files').onchange=e=>{files.push(...e.target.files);e.target.value='';drawChips()};
+$('#chips').onclick=e=>{const b=e.target.closest('[data-i]');if(b){files.splice(+b.dataset.i,1);drawChips()}};
+
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,2600)}
+$('#box').onsubmit=e=>{e.preventDefault();toast('화면 시안입니다. 보고서 만들기는 다음 단계에서 연결합니다.')};
+$('#importBtn').onclick=()=>toast('화면 시안입니다. 파일 불러오기는 다음 단계에서 연결합니다.');
+
+drawTabs();sync();
+</script>
