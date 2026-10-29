@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap">
 <style>
 /* 레이아웃: 종이를 위아래로 이어 붙이고, 각 종이 왼쪽 위에 색 필름 인덱스(쪽수)를 붙인다. 첫 화면과 같은 크림·코랄 테마 */
 :root{
@@ -55,9 +55,9 @@ button{cursor:pointer}
 .paper textarea{user-select:text;-webkit-user-select:text}
 
 /* 필름 인덱스: 종이 왼쪽 위에 반쯤 걸쳐 붙인 반투명 색 필름 */
-.film{position:absolute;top:-16px;left:22px;z-index:2;min-width:38px;height:34px;padding:0 10px;display:grid;place-items:center;
-  background:color-mix(in srgb,var(--fc) 72%,transparent);border:2px solid color-mix(in srgb,var(--fc) 100%,#000 12%);border-radius:3px 3px 2px 2px;
-  color:var(--film-ink);font-family:var(--f-ui);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;
+.film{position:absolute;top:-16px;left:22px;z-index:2;width:48px;height:34px;padding:0;display:grid;place-items:center;overflow:hidden;
+  background:color-mix(in srgb,var(--fc) 72%,transparent);border:2px solid color-mix(in srgb,var(--fc) 100%,#000 12%);border-radius:7px 7px 4px 4px;
+  color:var(--film-ink);font-family:"Fredoka","Jua",ui-rounded,"Arial Rounded MT Bold",sans-serif;font-weight:600;font-size:16px;letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums;
   transform:rotate(-2.5deg);box-shadow:0 1px 3px rgba(0,0,0,.12);transition:transform .15s}
 .film::after{content:"";position:absolute;left:4px;right:4px;top:3px;height:5px;background:rgba(255,255,255,.35);border-radius:2px}
 .film:hover{transform:rotate(-2.5deg) translateY(-2px)}
@@ -123,7 +123,7 @@ button.film{cursor:pointer}
 .mini-inner{width:620px;transform:scale(var(--ts,.2));transform-origin:0 0;pointer-events:none}
 .mini-inner .paper{box-shadow:none;border:0;aspect-ratio:auto;min-height:877px}
 .mini-inner .film{display:none}
-.cell .film{top:-12px;left:10px;min-width:30px;height:26px;font-size:12px;padding:0 7px}
+.cell .film{top:-12px;left:10px;width:38px;height:26px;font-size:13px}
 .cell:hover .mini{border-color:var(--accent)}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40;max-width:calc(100vw - 32px)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -304,7 +304,7 @@ const stage=$('#stage'), track=$('#doc');
 const GAP=()=>parseFloat(getComputedStyle(track).columnGap)||28;
 const W=()=>stage.clientWidth;
 const base=()=>-cur*(W()+GAP());
-const THRESH=()=>Math.min(150,W()*0.22);
+const THRESH=()=>Math.min(210,W()*0.32);
 const EASE_GO='.42s cubic-bezier(.2,1.1,.3,1)';
 const EASE_BACK='.55s cubic-bezier(.25,1.6,.45,1)';
 function setX(x,anim){track.style.transition=anim?`transform ${anim}`:'none';track.style.transform=`translate3d(${x}px,0,0)`}
@@ -313,7 +313,7 @@ function markActive(){slides().forEach((sl,i)=>{const on=i===cur;sl.inert=!on;sl
 function fitHeight(){const sl=slides()[cur];if(sl)stage.style.height=sl.offsetHeight+'px'}
 const ro=new ResizeObserver(()=>fitHeight());
 function atEdge(dx){return (dx>0&&cur===0)||(dx<0&&cur===PAGES.length-1)}
-function resist(dx){return dx*(atEdge(dx)?0.12:0.32)}
+function resist(dx){return dx*(atEdge(dx)?0.08:0.22)}
 function go(i,anim){
   i=Math.max(0,Math.min(PAGES.length-1,i));
   if(i===cur){setX(base(),EASE_BACK);return}
