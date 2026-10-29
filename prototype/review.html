@@ -26,7 +26,6 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{min-height:100%}
-html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.5;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -43,8 +42,13 @@ button{cursor:pointer}
 .doc-t{flex:1;min-width:0;font-family:var(--f-doc);font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* 종이 묶음 */
-.doc{max-width:620px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:40px;padding-top:26px;container-type:inline-size}
-.paper{word-break:keep-all;overflow-wrap:anywhere;background:var(--surface);border:1px solid var(--line);border-radius:4px;aspect-ratio:1/1.414;position:relative;scroll-margin-top:calc(env(safe-area-inset-top,0px) + 74px);
+/* 가로로 넘기는 무대: 한 번에 한 쪽, 일정 거리까지는 버티다가 넘으면 다음 쪽으로 넘어감 */
+.stage{max-width:680px;margin:0 auto;overflow:hidden;touch-action:pan-y;transition:height .35s ease;position:relative}
+.track{display:flex;align-items:flex-start;gap:var(--gap);will-change:transform;--gap:28px}
+.slide{flex:0 0 100%;min-width:0;padding:26px 30px 10px;container-type:inline-size}
+@media (max-width:520px){.slide{padding:26px 0 10px}}
+.stage.dragging{cursor:grabbing}
+.paper{word-break:keep-all;overflow-wrap:anywhere;background:var(--surface);border:1px solid var(--line);border-radius:4px;aspect-ratio:1/1.414;position:relative;max-width:620px;margin:0 auto;
   box-shadow:0 1px 2px rgba(40,30,20,.05),0 10px 30px rgba(40,30,20,.08);
   padding:9% 9% 9%;font-family:var(--f-doc);font-size:15px;line-height:1.85;user-select:none;-webkit-user-select:none}
 @container (max-width:520px){.paper{font-size:13.5px;line-height:1.8;padding:10% 7% 9%}}
@@ -82,7 +86,7 @@ button.film{cursor:pointer}
 .u.line{display:block}
 .u:hover{background:var(--hover)}
 .u[data-st="req"]{background:var(--req-bg);box-shadow:inset 0 -2px 0 var(--req-edge)}
-.doc .d-p,.doc .d-ul li,.doc .d-tbl td,.doc .d-h,.doc .d-h3,.doc .d-title,.doc .d-meta,.doc .d-toc,.doc .d-lines{cursor:pointer}
+.track .d-p,.track .d-ul li,.track .d-tbl td,.track .d-h,.track .d-h3,.track .d-title,.track .d-meta,.track .d-toc,.track .d-lines{cursor:pointer}
 
 /* 주석창 */
 .ann{display:grid;gap:6px;margin:.5em 0 1em;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--req-edge);border-radius:0 8px 8px 0;font-family:var(--f-ui);font-size:13px;line-height:1.5;user-select:text;-webkit-user-select:text;text-align:left;cursor:auto}
@@ -122,7 +126,7 @@ button.film{cursor:pointer}
 .cell .film{top:-12px;left:10px;min-width:30px;height:26px;font-size:12px;padding:0 7px}
 .cell:hover .mini{border-color:var(--accent)}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40;max-width:calc(100vw - 32px)}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
 <header class="bar">
@@ -130,7 +134,7 @@ button.film{cursor:pointer}
   <div class="doc-t" id="docT"></div>
 </header>
 
-<main class="doc" id="doc"></main>
+<main class="stage" id="stage"><div class="track" id="doc"></div></main>
 
 <div class="end">
   <button class="export" id="export">파일 내보내기</button>
@@ -251,7 +255,7 @@ function filmColors(n,count){
   return v;
 }
 function load(n){
-  sampleN=n; PAGES=SAMPLES[n]; req=new Map(); films=filmColors(n,PAGES.length);
+  sampleN=n; PAGES=SAMPLES[n]; req=new Map(); cur=0; films=filmColors(n,PAGES.length);
   PAGES.forEach((pg,pi)=>pg.forEach((b,bi)=>{
     if(b.t==='table')b.ids=b.rows.map((r,ri)=>r.map((_,ci)=>`s${n}p${pi}b${bi}r${ri}c${ci}`));
     else b.ids=b.s.map((_,si)=>`s${n}p${pi}b${bi}s${si}`);
@@ -287,21 +291,85 @@ function pageBody(pi,live){
   }).join('');
 }
 function render(focusId){
-  $('#doc').innerHTML=PAGES.map((_,pi)=>`<article class="paper" data-p="${pi}">${film(pi,'button')}${pageBody(pi,true)}</article>`).join('');
+  $('#doc').innerHTML=PAGES.map((_,pi)=>`<section class="slide" data-s="${pi}"><article class="paper" data-p="${pi}">${film(pi,'button')}${pageBody(pi,true)}</article></section>`).join('');
+  cur=Math.min(cur,PAGES.length-1);
+  markActive();setX(base());fitHeight();
+  slides().forEach(sl=>ro.observe(sl));
   if(focusId)$(`#doc textarea[data-c="${focusId}"]`)?.focus({preventScroll:true});
 }
 
-/* 현재 쪽: 상단 바 아래에 가장 가깝게 걸친 종이 */
-function currentPage(){
-  const ps=[...document.querySelectorAll('#doc .paper')];let cur=0;
-  ps.forEach((p,i)=>{if(p.getBoundingClientRect().top<=innerHeight*0.35)cur=i});
-  return cur;
+/* ---- 가로 넘김: 일정 거리까지는 버티다가, 넘으면 바로 다음 쪽으로 ---- */
+let cur=0;
+const stage=$('#stage'), track=$('#doc');
+const GAP=()=>parseFloat(getComputedStyle(track).columnGap)||28;
+const W=()=>stage.clientWidth;
+const base=()=>-cur*(W()+GAP());
+const THRESH=()=>Math.min(150,W()*0.22);
+const EASE_GO='.42s cubic-bezier(.2,1.1,.3,1)';
+const EASE_BACK='.55s cubic-bezier(.25,1.6,.45,1)';
+function setX(x,anim){track.style.transition=anim?`transform ${anim}`:'none';track.style.transform=`translate3d(${x}px,0,0)`}
+function slides(){return [...track.querySelectorAll('.slide')]}
+function markActive(){slides().forEach((sl,i)=>{const on=i===cur;sl.inert=!on;sl.setAttribute('aria-hidden',String(!on))})}
+function fitHeight(){const sl=slides()[cur];if(sl)stage.style.height=sl.offsetHeight+'px'}
+const ro=new ResizeObserver(()=>fitHeight());
+function atEdge(dx){return (dx>0&&cur===0)||(dx<0&&cur===PAGES.length-1)}
+function resist(dx){return dx*(atEdge(dx)?0.12:0.32)}
+function go(i,anim){
+  i=Math.max(0,Math.min(PAGES.length-1,i));
+  if(i===cur){setX(base(),EASE_BACK);return}
+  cur=i;markActive();setX(base(),anim||EASE_GO);fitHeight();
+  const top=stage.getBoundingClientRect().top+scrollY-70;if(scrollY>top)scrollTo({top,behavior:'smooth'});
 }
-function goPage(i){const p=document.querySelector(`#doc .paper[data-p="${i}"]`);if(p)p.scrollIntoView({block:'start'})}
+stage.addEventListener('scroll',()=>{stage.scrollLeft=0});
+addEventListener('resize',()=>{setX(base());fitHeight()});
+
+/* 손가락·마우스로 밀기 */
+let drag=null, suppress=false;
+stage.addEventListener('pointerdown',e=>{
+  if(e.button!==0||e.target.closest('textarea,button,.ann'))return;
+  const now=performance.now();
+  drag={x:e.clientX,y:e.clientY,on:false,done:false,id:e.pointerId,lx:e.clientX,lt:now,vx:0};
+});
+stage.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(!drag.on){
+    if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){drag=null;return}
+    if(Math.abs(dx)<8)return;
+    drag.on=true;stage.setPointerCapture(e.pointerId);stage.classList.add('dragging');
+  }
+  const now=performance.now();drag.vx=(e.clientX-drag.lx)/Math.max(1,now-drag.lt);drag.lx=e.clientX;drag.lt=now;
+  if(drag.done)return;
+  if(!atEdge(dx)&&Math.abs(dx)>THRESH()){drag.done=true;go(cur+(dx<0?1:-1));return}
+  setX(base()+resist(dx));
+});
+function endDrag(e){
+  if(!drag||e.pointerId!==drag.id)return;
+  const d=drag;drag=null;stage.classList.remove('dragging');
+  if(!d.on)return;
+  suppress=true;setTimeout(()=>suppress=false,0);
+  if(d.done)return;
+  const dx=e.clientX-d.x;
+  if(Math.abs(d.vx)>0.7&&Math.abs(dx)>30&&!atEdge(dx))go(cur+(d.vx<0?1:-1));else setX(base(),EASE_BACK);
+}
+stage.addEventListener('pointerup',endDrag);
+stage.addEventListener('pointercancel',endDrag);
+stage.addEventListener('click',e=>{if(suppress){e.stopPropagation();e.preventDefault()}},true);
+
+/* 트랙패드·가로 휠 */
+let wdx=0,wTimer=0,wLock=0;
+stage.addEventListener('wheel',e=>{
+  if(Math.abs(e.deltaX)<=Math.abs(e.deltaY))return;
+  e.preventDefault();
+  if(performance.now()<wLock)return;
+  wdx-=e.deltaX;clearTimeout(wTimer);
+  if(!atEdge(wdx)&&Math.abs(wdx)>THRESH()){const dir=wdx<0?1:-1;wdx=0;wLock=performance.now()+650;go(cur+dir);return}
+  setX(base()+resist(wdx));
+  wTimer=setTimeout(()=>{wdx=0;setX(base(),EASE_BACK)},140);
+},{passive:false});
 
 /* 전체 쪽 미리보기 */
 function openOverview(){
-  const cur=currentPage();
   $('#ovGrid').innerHTML=PAGES.map((_,pi)=>`<button class="cell" data-goto="${pi}" aria-label="${pi+1}쪽으로 이동" aria-current="${pi===cur}">${film(pi,'span')}<span class="mini"><span class="mini-inner" style="display:block"><span class="paper" style="display:block">${pageBody(pi,false)}</span></span></span></button>`).join('');
   $('#ov').hidden=false;document.body.classList.add('lock');
   const w=$('#ovGrid .mini')?.clientWidth||120;$('#ovGrid').style.setProperty('--ts',(w/620).toFixed(4));
@@ -311,7 +379,7 @@ function closeOverview(){$('#ov').hidden=true;document.body.classList.remove('lo
 $('#ovClose').onclick=closeOverview;
 $('#ov').addEventListener('click',e=>{
   const c=e.target.closest('[data-goto]');
-  if(c){closeOverview();goPage(+c.dataset.goto);return}
+  if(c){closeOverview();go(+c.dataset.goto);return}
   if(e.target===$('#ov'))closeOverview();
 });
 addEventListener('resize',()=>{if(!$('#ov').hidden){const w=$('#ovGrid .mini')?.clientWidth||120;$('#ovGrid').style.setProperty('--ts',(w/620).toFixed(4))}});
@@ -353,8 +421,8 @@ document.addEventListener('keydown',e=>{
     }
     return;
   }
-  if(e.key==='ArrowRight'){e.preventDefault();goPage(Math.min(currentPage()+1,PAGES.length-1))}
-  if(e.key==='ArrowLeft'){e.preventDefault();goPage(Math.max(currentPage()-1,0))}
+  if(e.key==='ArrowRight'){e.preventDefault();go(cur+1)}
+  if(e.key==='ArrowLeft'){e.preventDefault();go(cur-1)}
 });
 $('#export').onclick=()=>toast(req.size?`빨강 문장이 ${req.size}개 남아 있어 내보낼 수 없습니다.`:'화면 시안입니다. 내보내기는 다음 단계에서 연결합니다.');
 $('#back').onclick=()=>toast('화면 시안입니다. 첫 화면으로 돌아가는 자리입니다.');
