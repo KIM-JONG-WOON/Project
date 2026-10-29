@@ -27,6 +27,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{min-height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.5;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -79,7 +80,8 @@ button.film{cursor:pointer}
 .d-toc .u{padding:.2em .3em;border-bottom:1px dotted var(--line)}
 .d-lines{margin:.3em 0 1em}
 .d-lines .u{padding:.1em .3em}
-.d-tbl{margin:.6em 0 .9em;border-radius:4px;cursor:pointer;transition:background .12s,box-shadow .12s}
+.d-tbl{margin:.6em 0 .9em;border-radius:4px;cursor:cell;transition:background .12s,box-shadow .12s}
+.d-tbl td .u{cursor:pointer}
 .d-tbl table{border-collapse:collapse;width:100%;font-family:var(--f-ui);font-size:.82em;line-height:1.5;font-variant-numeric:tabular-nums}
 .d-tbl td{border:1px solid var(--line);padding:.4em .6em;text-align:right}
 .d-tbl td:first-child{text-align:left}
@@ -99,20 +101,18 @@ button.film{cursor:pointer}
 /* 종이 위에 뜨는 주석 카드와 접힌 꼬리표 */
 .layer{position:absolute;inset:0;pointer-events:none;z-index:4}
 .layer>*{pointer-events:auto;position:absolute}
-.ann{display:grid;gap:7px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--req-edge);border-radius:8px;
+.ann{display:grid;gap:7px;padding:8px;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--req-edge);border-radius:8px;
   box-shadow:0 8px 28px rgba(30,20,10,.18);font-family:var(--f-ui);font-size:13px;line-height:1.5}
 .ann::before{content:"";position:absolute;top:-9px;left:var(--ax,20px);width:12px;height:12px;background:var(--req-edge);transform:rotate(45deg);border-radius:2px;z-index:-1}
 .ann-h{display:flex;gap:8px;align-items:baseline}
 .ann-h b{color:var(--req-edge);font-weight:600}
 .ann-h span{color:var(--muted);font-size:12px}
-.ann textarea{width:100%;min-height:2.8em;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:6px 8px;resize:vertical;line-height:1.5}
+.ann textarea{width:100%;min-height:2.8em;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:6px 8px;resize:vertical;line-height:1.5;font-size:16px}
 .ann textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .ann textarea.need{border-color:var(--req-edge);box-shadow:0 0 0 3px var(--req-bg)}
 .ann-f{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;justify-content:space-between}
 .modes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.mode{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;text-align:left;display:grid;gap:1px}
-.mode b{font-size:13px}
-.mode small{font-size:11.5px;color:var(--muted)}
+.mode{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 10px;font-size:13px}
 .mode[aria-pressed="true"]{border-color:var(--req-edge);background:var(--req-bg)}
 .modes.need .mode{border-color:var(--req-edge)}
 .tag{display:inline-flex;align-items:center;gap:4px;max-width:150px;border:1px solid var(--req-edge);background:var(--surface);color:var(--ink);border-radius:999px;padding:2px 9px 2px 7px;font-size:11.5px;box-shadow:0 2px 6px rgba(30,20,10,.12)}
@@ -277,7 +277,10 @@ function filmColors(n,count){
 }
 function load(n){
   sampleN=n; PAGES=SAMPLES[n]; req=new Map(); active=null; cur=0; films=filmColors(n,PAGES.length);
-  PAGES.forEach((pg,pi)=>pg.forEach((b,bi)=>{b.ids=b.t==='table'?[`s${n}p${pi}b${bi}t`]:b.s.map((_,si)=>`s${n}p${pi}b${bi}s${si}`)}));
+  PAGES.forEach((pg,pi)=>pg.forEach((b,bi)=>{
+    if(b.t==='table'){b.tid=`s${n}p${pi}b${bi}t`;b.cids=b.rows.map((r,ri)=>r.map((_,ci)=>`s${n}p${pi}b${bi}r${ri}c${ci}`));b.ids=[b.tid,...b.cids.flat()]}
+    else b.ids=b.s.map((_,si)=>`s${n}p${pi}b${bi}s${si}`);
+  }));
   document.querySelectorAll('[data-sample]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.sample===n)));
   render();scrollTo({top:0});
 }
@@ -299,7 +302,7 @@ function pageBody(pi){
     if(b.t==='lines')return `<div class="d-lines">${us}</div>`;
     if(b.t==='p')return `<p class="d-p">${us}</p>`;
     if(b.t==='ul')return `<ul class="d-ul">${b.s.map((s,i)=>`<li>${unit(b.ids[i],s)}</li>`).join('')}</ul>`;
-    if(b.t==='table'){const id=b.ids[0];return `<div class="d-tbl" data-u="${id}" data-kind="table" data-st="${req.has(id)?'req':'black'}"><table>${b.rows.map((r,ri)=>`<${ri?'tr':'thead><tr'}>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>${ri?'':'</thead>'}`).join('')}</table></div>`}
+    if(b.t==='table'){const id=b.tid;return `<div class="d-tbl" data-u="${id}" data-kind="table" data-st="${req.has(id)?'req':'black'}"><table>${b.rows.map((r,ri)=>`<${ri?'tr':'thead><tr'}>${r.map((c,ci)=>`<td>${unit(b.cids[ri][ci],c)}</td>`).join('')}</tr>${ri?'':'</thead>'}`).join('')}</table></div>`}
   }).join('');
 }
 function render(){
@@ -315,16 +318,13 @@ function layout(){
 /* ---- 주석 카드 ---- */
 function cardHTML(id){
   const r=req.get(id), isT=r.kind==='table';
-  const ph=!isT?'예: 더 짧게, 숫자는 표와 맞춰서':r.mode==='chart'?'예: 부서별 전환율을 막대그래프로, 표 바로 아래에':'예: 합계 행 추가, 전환율 내림차순으로';
   return `<div class="ann" data-card="${id}">`+
-    `<div class="ann-h"><b>${isT?'표 요청':'요청'}</b><span>${isT?(r.mode?'':'먼저 무엇을 할지 고르세요'):'어떻게 고칠지 적어 주세요'}</span></div>`+
-    (isT?`<div class="modes" role="group" aria-label="표로 할 일"><button class="mode" data-mode="edit" aria-pressed="${r.mode==='edit'}"><b>표 고치기</b><small>이 표를 기준으로 주석</small></button><button class="mode" data-mode="chart" aria-pressed="${r.mode==='chart'}"><b>그래프 그리기</b><small>이 표로 그래프 만들기</small></button></div>`:'')+
-    (!isT||r.mode?`<textarea data-c="${id}" rows="2" placeholder="${ph}">${esc(r.comment)}</textarea>`:'')+
-    `<div class="ann-f"><span class="hint">Enter 전송 · Shift+Enter 줄바꿈 · Esc 접기</span><button class="link" data-x="${id}">요청 취소</button></div></div>`;
+    (isT?`<div class="modes" role="group" aria-label="표로 할 일"><button class="mode" data-mode="edit" aria-pressed="${r.mode==='edit'}">표 고치기</button><button class="mode" data-mode="chart" aria-pressed="${r.mode==='chart'}">그래프</button></div>`:'')+
+    `<textarea data-c="${id}" rows="2" aria-label="주석">${esc(r.comment)}</textarea></div>`;
 }
 function tagHTML(id){
   const r=req.get(id), empty=!r.comment.trim()||(r.kind==='table'&&!r.mode);
-  return `<button class="tag${empty?' need':''}" data-open="${id}"><i>✎</i><span>${empty?'주석 비어 있음':esc(r.comment)}</span></button>`;
+  return `<button class="tag${empty?' need':''}" data-open="${id}"><i>✎</i>${empty?'':`<span>${esc(r.comment)}</span>`}</button>`;
 }
 function drawPanels(focus){
   track.querySelectorAll('.layer').forEach(l=>l.innerHTML='');
@@ -442,7 +442,9 @@ function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeou
    글: 글자 위가 아니어도 블록 안을 누르면 누른 자리에서 가장 가까운 문장(줄)이 선택된다. */
 const BLOCKS='.d-p,.d-ul li,.d-h,.d-h3,.d-title,.d-meta,.d-toc,.d-lines';
 function hit(e){
-  const direct=e.target.closest('.paper [data-u]');if(direct)return direct;
+  const cell=e.target.closest('.paper .d-tbl .u');if(cell)return cell;      // 표 안 글씨
+  const tbl=e.target.closest('.paper .d-tbl');if(tbl)return tbl;           // 표 뼈대·칸 여백
+  const direct=e.target.closest('.paper .u');if(direct)return direct;
   const blk=e.target.closest('.paper')&&e.target.closest(BLOCKS);if(!blk)return null;
   let best=null,score=Infinity;
   for(const el of blk.querySelectorAll('.u'))for(const r of el.getClientRects()){
