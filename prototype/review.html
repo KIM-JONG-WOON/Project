@@ -2,96 +2,90 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600;700&display=swap">
 <style>
-/* 레이아웃: 가운데 큰 종이 한 장, 양옆에 이전·다음 쪽을 아주 작게. 첫 화면과 같은 크림·코랄 테마 */
+/* 레이아웃: 종이를 위아래로 이어 붙이고, 각 종이 왼쪽 위에 색 필름 인덱스(쪽수)를 붙인다. 첫 화면과 같은 크림·코랄 테마 */
 :root{
   --bg:#faf9f5; --surface:#ffffff; --ink:#1f1e1d; --muted:#6f6d66; --line:#e6e3da;
   --accent:#d97757; --accent-soft:#f6e4da; --accent-ink:#ffffff;
-  --req-bg:#fbd3cc; --req-edge:#c63a2b; --hover:#f3f0e8; --panel:#faf7f2;
+  --req-bg:#fbd3cc; --req-edge:#d4321f; --hover:#f3f0e8; --panel:#faf7f2; --scrim:rgba(31,30,29,.55);
+  /* 필름 인덱스 색 (빨강·초록 계열 제외) */
+  --f0:#f3c94f; --f1:#6f9cf0; --f2:#a184e6; --f3:#5cbfe0; --f4:#f0a24e; --f5:#5f6fd6; --f6:#c4a06a;
+  --film-ink:#1f1e1d;
   --f-doc:"Noto Serif KR","Nanum Myeongjo","Batang",serif;
   --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#262624; --surface:#30302e; --ink:#f2f0ea; --muted:#a8a59c; --line:#3e3d39;
   --accent:#e08a6d; --accent-soft:#4a3329; --accent-ink:#1f1e1d;
-  --req-bg:#5e2822; --req-edge:#ff8f80; --hover:#3a3936; --panel:#2a2a28; color-scheme:dark}}
+  --req-bg:#5e2822; --req-edge:#ff6b57; --hover:#3a3936; --panel:#2a2a28; --scrim:rgba(0,0,0,.6); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#262624; --surface:#30302e; --ink:#f2f0ea; --muted:#a8a59c; --line:#3e3d39;
   --accent:#e08a6d; --accent-soft:#4a3329; --accent-ink:#1f1e1d;
-  --req-bg:#5e2822; --req-edge:#ff8f80; --hover:#3a3936; --panel:#2a2a28; color-scheme:dark}
+  --req-bg:#5e2822; --req-edge:#ff6b57; --hover:#3a3936; --panel:#2a2a28; --scrim:rgba(0,0,0,.6); color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{min-height:100%}
+html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.5;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 24px}
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+body.lock{overflow:hidden}
 button,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* 상단 바 */
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);max-width:1000px;margin:0 auto;padding-block:10px;display:flex;align-items:center;gap:10px}
+/* 상단 바: 뒤로 + 제목만 */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);max-width:680px;margin:0 auto;padding-block:10px;display:flex;align-items:center;gap:10px}
 .back{width:34px;height:34px;flex:none;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--muted)}
 .back:hover{color:var(--ink)}
 .back svg{width:16px;height:16px}
 .doc-t{flex:1;min-width:0;font-family:var(--f-doc);font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pill{flex:none;font-size:12px;color:var(--muted);border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font-variant-numeric:tabular-nums}
-.pill b{color:var(--req-edge);font-weight:600}
 
-/* 무대: 이전 · 현재 · 다음 */
-.stage{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr minmax(0,620px) 1fr;gap:28px;align-items:start;padding-top:12px}
-.slot{min-width:0;position:sticky;top:calc(env(safe-area-inset-top,0px) + 120px)}
-.slot.prev{justify-self:end}
-.slot.next{justify-self:start}
-.thumb{all:unset;box-sizing:border-box;display:grid;gap:6px;justify-items:center;cursor:pointer;width:var(--tw);color:var(--muted);font-size:11.5px}
-.thumb-paper{width:var(--tw);height:calc(var(--tw) * 1.414);overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:3px;box-shadow:0 1px 2px rgba(40,30,20,.05),0 4px 14px rgba(40,30,20,.07);opacity:.75;transition:opacity .15s,transform .15s}
-.thumb:hover .thumb-paper,.thumb:focus-visible .thumb-paper{opacity:1;transform:translateY(-2px)}
-.thumb:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
-.thumb-inner{width:620px;transform:scale(var(--ts));transform-origin:0 0;pointer-events:none}
-.stage{--tw:104px;--ts:.16774}
-.main{min-width:0;container-type:inline-size}
-
-/* 종이 */
-.paper{word-break:keep-all;overflow-wrap:anywhere;background:var(--surface);border:1px solid var(--line);border-radius:4px;aspect-ratio:1/1.414;position:relative;
+/* 종이 묶음 */
+.doc{max-width:620px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:40px;padding-top:26px;container-type:inline-size}
+.paper{word-break:keep-all;overflow-wrap:anywhere;background:var(--surface);border:1px solid var(--line);border-radius:4px;aspect-ratio:1/1.414;position:relative;scroll-margin-top:calc(env(safe-area-inset-top,0px) + 74px);
   box-shadow:0 1px 2px rgba(40,30,20,.05),0 10px 30px rgba(40,30,20,.08);
-  padding:9% 9% 11%;font-family:var(--f-doc);font-size:15px;line-height:1.85;user-select:none;-webkit-user-select:none}
-@container (max-width:520px){.paper{font-size:13.5px;line-height:1.8;padding:9% 7% 12%}}
+  padding:9% 9% 9%;font-family:var(--f-doc);font-size:15px;line-height:1.85;user-select:none;-webkit-user-select:none}
+@container (max-width:520px){.paper{font-size:13.5px;line-height:1.8;padding:10% 7% 9%}}
 .paper textarea{user-select:text;-webkit-user-select:text}
-.thumb-inner .paper{font-size:15px;padding:56px 56px 68px}
-.enter-next{animation:inR .22s ease-out}
-.enter-prev{animation:inL .22s ease-out}
-@keyframes inR{from{transform:translateX(18px);opacity:.4}}
-@keyframes inL{from{transform:translateX(-18px);opacity:.4}}
+
+/* 필름 인덱스: 종이 왼쪽 위에 반쯤 걸쳐 붙인 반투명 색 필름 */
+.film{position:absolute;top:-16px;left:22px;z-index:2;min-width:38px;height:34px;padding:0 10px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--fc) 72%,transparent);border:2px solid color-mix(in srgb,var(--fc) 100%,#000 12%);border-radius:3px 3px 2px 2px;
+  color:var(--film-ink);font-family:var(--f-ui);font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;
+  transform:rotate(-2.5deg);box-shadow:0 1px 3px rgba(0,0,0,.12);transition:transform .15s}
+.film::after{content:"";position:absolute;left:4px;right:4px;top:3px;height:5px;background:rgba(255,255,255,.35);border-radius:2px}
+.film:hover{transform:rotate(-2.5deg) translateY(-2px)}
+.film[data-red="true"]{border-color:var(--req-edge);border-width:3px}
+button.film{cursor:pointer}
+
 .d-title{font-size:1.5em;font-weight:700;line-height:1.4;margin:0 0 .3em;text-wrap:balance}
 .d-meta{font-family:var(--f-ui);font-size:.82em;color:var(--muted);margin:0 0 1.8em;padding-bottom:.9em;border-bottom:1px solid var(--line)}
 .d-h{font-size:1.1em;font-weight:700;margin:1.5em 0 .4em}
+.d-h:first-child{margin-top:0}
+.d-h3{font-size:1em;font-weight:600;margin:1.1em 0 .3em}
+.d-h3:first-child{margin-top:0}
 .d-p{margin:0 0 .7em}
 .d-ul{margin:0 0 .7em;padding-left:1.2em}
-.d-ul li{margin:0}
-.d-tbl{overflow-x:auto;margin:.6em 0 .9em}
-.d-tbl table{border-collapse:collapse;width:100%;font-family:var(--f-ui);font-size:.82em;line-height:1.5;font-variant-numeric:tabular-nums}
-.d-tbl th,.d-tbl td{border:1px solid var(--line);padding:.4em .6em;text-align:right}
-.d-tbl th:first-child,.d-tbl td:first-child{text-align:left}
-.d-tbl thead td{background:var(--panel);font-weight:600}
-.pno{position:absolute;left:0;right:0;bottom:4.5%;text-align:center;font-family:var(--f-ui);font-size:.75em;color:var(--muted)}
-
-/* 문장 단위 */
-.u{cursor:pointer;border-radius:3px;padding:.1em .05em;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background .12s}
-.u:hover{background:var(--hover)}
-.u[data-st="req"]{background:var(--req-bg);box-shadow:inset 0 -2px 0 var(--req-edge)}
-
-.u.line{display:block}
-#paper .d-p,#paper .d-ul li,#paper .d-tbl td,#paper .d-h,#paper .d-h3,#paper .d-title,#paper .d-meta,#paper .d-toc,#paper .d-lines{cursor:pointer}
-.d-h3{font-size:1em;font-weight:600;margin:1.1em 0 .3em}
 .d-toc,.d-lines{margin:.3em 0 1em}
 .d-toc .u{padding:.2em .3em;border-bottom:1px dotted var(--line)}
 .d-lines .u{padding:.1em .3em}
-.sample{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
-.sample button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:3px 10px;font-size:12px}
-.sample button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.d-tbl{overflow-x:auto;margin:.6em 0 .9em}
+.d-tbl table{border-collapse:collapse;width:100%;font-family:var(--f-ui);font-size:.82em;line-height:1.5;font-variant-numeric:tabular-nums}
+.d-tbl td{border:1px solid var(--line);padding:.4em .6em;text-align:right}
+.d-tbl td:first-child{text-align:left}
+.d-tbl thead td{background:var(--panel);font-weight:600}
+
+/* 문장 단위 */
+.u{cursor:pointer;border-radius:3px;padding:.1em .05em;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:background .12s}
+.u.line{display:block}
+.u:hover{background:var(--hover)}
+.u[data-st="req"]{background:var(--req-bg);box-shadow:inset 0 -2px 0 var(--req-edge)}
+.doc .d-p,.doc .d-ul li,.doc .d-tbl td,.doc .d-h,.doc .d-h3,.doc .d-title,.doc .d-meta,.doc .d-toc,.doc .d-lines{cursor:pointer}
+
 /* 주석창 */
-.ann{display:grid;gap:6px;margin:.5em 0 1em;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--req-edge);border-radius:0 8px 8px 0;font-family:var(--f-ui);font-size:13px;line-height:1.5;user-select:text;-webkit-user-select:text;text-align:left}
+.ann{display:grid;gap:6px;margin:.5em 0 1em;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--req-edge);border-radius:0 8px 8px 0;font-family:var(--f-ui);font-size:13px;line-height:1.5;user-select:text;-webkit-user-select:text;text-align:left;cursor:auto}
 .ann-h{display:flex;gap:8px;align-items:baseline}
 .ann-h b{color:var(--req-edge);font-weight:600}
 .ann-h span{color:var(--muted);font-size:12px}
@@ -103,45 +97,52 @@ button{cursor:pointer}
 .link{border:0;background:none;padding:0;color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:2px}
 .link:hover{color:var(--ink)}
 
-/* 아래 */
-.foot{max-width:620px;margin:16px auto 0;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:center}
-.dots{display:flex;gap:6px}
-.dot{width:8px;height:8px;border-radius:50%;border:0;padding:0;background:var(--line)}
-.dot[aria-current="true"]{background:var(--accent);width:20px;border-radius:4px}
-.foot .hint{width:100%;text-align:center}
-.export{border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);padding:9px 18px;font-weight:600;font-size:14px}
-.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:20;max-width:calc(100vw - 32px)}
+/* 문서 끝 */
+.end{max-width:620px;margin:28px auto 0;display:grid;justify-items:center;gap:14px}
+.export{border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);padding:10px 22px;font-weight:600;font-size:14px}
+.sample{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.sample button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:3px 10px;font-size:12px}
+.sample button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
 
-/* 폰: 오른쪽에 아주 작은 쪽 하나만 */
-@media (max-width:760px){
-  .stage{grid-template-columns:minmax(0,1fr) var(--tw);gap:10px;--tw:48px;--ts:.07742}
-  .slot.prev{display:none}
-  .slot.prev.solo{display:block;grid-column:2;grid-row:1}
-  .slot.next{grid-column:2;grid-row:1}
-  .main{grid-column:1;grid-row:1}
-  .thumb{font-size:10px}
-}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* 전체 쪽 미리보기 */
+.ov{position:fixed;inset:0;z-index:30;background:var(--scrim);display:grid;place-items:center;padding:16px}
+.ov-box{background:var(--bg);border-radius:12px;width:min(980px,100%);max-height:calc(100% - 8px);overflow:auto;padding:18px 18px 22px;display:grid;gap:14px}
+.ov-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ov-h h2{margin:0;font-size:16px}
+.ov-close{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px}
+.ov-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:26px 16px;padding-top:12px}
+@media (max-width:640px){.ov-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cell{all:unset;box-sizing:border-box;cursor:pointer;position:relative;display:block;border-radius:4px}
+.cell:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.cell[aria-current="true"] .mini{outline:2px solid var(--accent);outline-offset:3px}
+.mini{display:block;width:100%;aspect-ratio:1/1.414;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:3px;box-shadow:0 2px 8px rgba(40,30,20,.08);position:relative}
+.mini-inner{width:620px;transform:scale(var(--ts,.2));transform-origin:0 0;pointer-events:none}
+.mini-inner .paper{box-shadow:none;border:0;aspect-ratio:auto;min-height:877px}
+.mini-inner .film{display:none}
+.cell .film{top:-12px;left:10px;min-width:30px;height:26px;font-size:12px;padding:0 7px}
+.cell:hover .mini{border-color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40;max-width:calc(100vw - 32px)}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
 </style>
 
 <header class="bar">
   <button class="back" id="back" aria-label="첫 화면으로"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <div class="doc-t" id="docT"></div>
-  <span class="pill" id="reqCount"></span>
 </header>
 
-<section class="stage" id="stage">
-  <div class="slot prev" id="prevSlot"></div>
-  <div class="main"><article class="paper" id="paper"></article></div>
-  <div class="slot next" id="nextSlot"></div>
-</section>
+<main class="doc" id="doc"></main>
 
-<footer class="foot">
-  <div class="dots" id="dots"></div>
-  <button class="export" id="export" hidden>파일 내보내기</button>
-  <span class="hint">문장을 누르면 빨강으로 바뀌고 주석창이 열립니다 · ← → 키나 옆의 작은 쪽을 눌러 넘깁니다</span>
+<div class="end">
+  <button class="export" id="export">파일 내보내기</button>
   <div class="sample" role="group" aria-label="예시 문서 분량"><span>예시 문서</span><button data-sample="2">2쪽</button><button data-sample="10">10쪽</button></div>
-</footer>
+</div>
+
+<div class="ov" id="ov" hidden>
+  <div class="ov-box" role="dialog" aria-modal="true" aria-labelledby="ovT">
+    <div class="ov-h"><h2 id="ovT">전체 쪽</h2><button class="ov-close" id="ovClose">닫기</button></div>
+    <div class="ov-grid" id="ovGrid"></div>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -238,18 +239,29 @@ const SAMPLES={
     {t:'lines',s:['붙임 1. 부서별 전환 일정표 1부','붙임 2. 교육 만족도 조사 결과 1부','붙임 3. 4분기 예산 세부 내역 1부']}
   ]
 ]};
-const LINE_TYPES=['title','meta','h','h3','toc','lines'];
-let PAGES=[], req=new Map(), page=0, sampleN=2;
+const LINE_TYPES=['title','meta','h','h3','toc','lines'], FILM_N=7;
+let PAGES=[], req=new Map(), sampleN=2, films=[];
 
+/* 필름 색: 처음 열 때 쪽마다 무작위로 정하고, 이후에는 바꾸지 않는다 */
+function filmColors(n,count){
+  const key=`rv-film-${n}`;
+  try{const v=JSON.parse(localStorage.getItem(key)||'null');if(Array.isArray(v)&&v.length===count)return v}catch(e){}
+  const v=[];for(let i=0;i<count;i++){let c;do{c=Math.floor(Math.random()*FILM_N)}while(i&&c===v[i-1]);v.push(c)}
+  try{localStorage.setItem(key,JSON.stringify(v))}catch(e){}
+  return v;
+}
 function load(n){
-  sampleN=n; PAGES=SAMPLES[n]; req=new Map(); page=0;
+  sampleN=n; PAGES=SAMPLES[n]; req=new Map(); films=filmColors(n,PAGES.length);
   PAGES.forEach((pg,pi)=>pg.forEach((b,bi)=>{
     if(b.t==='table')b.ids=b.rows.map((r,ri)=>r.map((_,ci)=>`s${n}p${pi}b${bi}r${ri}c${ci}`));
     else b.ids=b.s.map((_,si)=>`s${n}p${pi}b${bi}s${si}`);
   }));
   document.querySelectorAll('[data-sample]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.sample===n)));
-  render();
+  render();scrollTo({top:0,behavior:'auto'});
 }
+function pageIds(pi){return PAGES[pi].flatMap(b=>b.t==='table'?b.ids.flat():b.ids)}
+const pageRed=pi=>pageIds(pi).some(id=>req.has(id));
+function film(pi,tag){return `<${tag} class="film" ${tag==='button'?'data-ov="1" aria-label="'+(pi+1)+'쪽 · 전체 쪽 보기"':''} style="--fc:var(--f${films[pi]})" data-red="${pageRed(pi)}">${pi+1}</${tag}>`}
 function panel(id){
   return `<span class="ann" data-a="${id}" style="display:grid"><span class="ann-h"><b>요청</b><span>어떻게 고칠지 적어 주세요</span></span>`+
     `<textarea data-c="${id}" rows="2" placeholder="예: 더 짧게, 숫자는 표와 맞춰서">${esc(req.get(id).comment)}</textarea>`+
@@ -259,8 +271,8 @@ function unit(id,text,live,line){
   const r=req.has(id);
   return `<span class="u${line?' line':''}" data-u="${id}" data-st="${r?'req':'black'}">${esc(text)}</span>`+(r&&live?panel(id):'');
 }
-function pageHTML(pi,live){
-  const body=PAGES[pi].map(b=>{
+function pageBody(pi,live){
+  return PAGES[pi].map(b=>{
     const line=LINE_TYPES.includes(b.t);
     const us=b.s?b.s.map((s,i)=>unit(b.ids[i],s,live,line)).join(line?'':' '):'';
     if(b.t==='title')return `<h1 class="d-title">${us}</h1>`;
@@ -273,69 +285,76 @@ function pageHTML(pi,live){
     if(b.t==='ul')return `<ul class="d-ul">${b.s.map((s,i)=>`<li>${unit(b.ids[i],s,live)}</li>`).join('')}</ul>`;
     if(b.t==='table')return `<div class="d-tbl"><table>${b.rows.map((r,ri)=>`<${ri?'tr':'thead><tr'}>${r.map((c,ci)=>`<td>${unit(b.ids[ri][ci],c,false)}</td>`).join('')}</tr>${ri?'':'</thead>'}`).join('')}</table></div>`+(live?b.ids.flat().filter(id=>req.has(id)).map(panel).join(''):'');
   }).join('');
-  return body+`<div class="pno">- ${pi+1} -</div>`;
 }
-function thumb(pi,label){
-  return `<button class="thumb" data-go="${pi}" aria-label="${pi+1}쪽으로 이동"><span class="thumb-paper"><span class="thumb-inner" style="display:block"><span class="paper" style="display:block">${pageHTML(pi,false)}</span></span></span><span>${label}</span></button>`;
+function render(focusId){
+  $('#doc').innerHTML=PAGES.map((_,pi)=>`<article class="paper" data-p="${pi}">${film(pi,'button')}${pageBody(pi,true)}</article>`).join('');
+  if(focusId)$(`#doc textarea[data-c="${focusId}"]`)?.focus({preventScroll:true});
 }
-function render(dir){
-  const paper=$('#paper');
-  paper.innerHTML=pageHTML(page,true);
-  paper.classList.remove('enter-next','enter-prev');
-  if(dir){void paper.offsetWidth;paper.classList.add(dir>0?'enter-next':'enter-prev')}
-  const n=PAGES.length, hasPrev=page>0, hasNext=page<n-1;
-  $('#prevSlot').innerHTML=hasPrev?thumb(page-1,`← ${page}쪽`):'';
-  $('#nextSlot').innerHTML=hasNext?thumb(page+1,`${page+2}쪽 →`):'';
-  $('#prevSlot').classList.toggle('solo',hasPrev&&!hasNext);
-  $('#dots').innerHTML=PAGES.map((_,i)=>`<button class="dot" data-go="${i}" aria-label="${i+1}쪽" aria-current="${i===page}"></button>`).join('');
-  $('#export').hidden=hasNext;
-  $('#reqCount').innerHTML=`${page+1} / ${n}쪽${req.size?` · <b>빨강 ${req.size}</b>`:''}`;
+
+/* 현재 쪽: 상단 바 아래에 가장 가깝게 걸친 종이 */
+function currentPage(){
+  const ps=[...document.querySelectorAll('#doc .paper')];let cur=0;
+  ps.forEach((p,i)=>{if(p.getBoundingClientRect().top<=innerHeight*0.35)cur=i});
+  return cur;
 }
-function go(i){if(i<0||i>=PAGES.length||i===page)return;const d=i>page?1:-1;page=i;render(d);scrollTo({top:0,behavior:'smooth'})}
+function goPage(i){const p=document.querySelector(`#doc .paper[data-p="${i}"]`);if(p)p.scrollIntoView({block:'start'})}
+
+/* 전체 쪽 미리보기 */
+function openOverview(){
+  const cur=currentPage();
+  $('#ovGrid').innerHTML=PAGES.map((_,pi)=>`<button class="cell" data-goto="${pi}" aria-label="${pi+1}쪽으로 이동" aria-current="${pi===cur}">${film(pi,'span')}<span class="mini"><span class="mini-inner" style="display:block"><span class="paper" style="display:block">${pageBody(pi,false)}</span></span></span></button>`).join('');
+  $('#ov').hidden=false;document.body.classList.add('lock');
+  const w=$('#ovGrid .mini')?.clientWidth||120;$('#ovGrid').style.setProperty('--ts',(w/620).toFixed(4));
+  $(`#ovGrid .cell[data-goto="${cur}"]`)?.focus({preventScroll:true});
+}
+function closeOverview(){$('#ov').hidden=true;document.body.classList.remove('lock')}
+$('#ovClose').onclick=closeOverview;
+$('#ov').addEventListener('click',e=>{
+  const c=e.target.closest('[data-goto]');
+  if(c){closeOverview();goPage(+c.dataset.goto);return}
+  if(e.target===$('#ov'))closeOverview();
+});
+addEventListener('resize',()=>{if(!$('#ov').hidden){const w=$('#ovGrid .mini')?.clientWidth||120;$('#ovGrid').style.setProperty('--ts',(w/620).toFixed(4))}});
+
 function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,2800)}
 
 /* 클릭 규칙: 글자 위가 아니어도 블록 안을 누르면, 누른 자리에서 가장 가까운 문장(줄)이 선택된다 */
 const BLOCKS='.d-p,.d-ul li,.d-tbl td,.d-h,.d-h3,.d-title,.d-meta,.d-toc,.d-lines';
 function hit(e){
-  const direct=e.target.closest('#paper .u');if(direct)return direct;
-  if(!e.target.closest('#paper')||e.target.closest('.ann'))return null;
+  const direct=e.target.closest('#doc .u');if(direct)return direct;
+  if(!e.target.closest('#doc')||e.target.closest('.ann'))return null;
   const blk=e.target.closest(BLOCKS);if(!blk)return null;
   let best=null,score=Infinity;
-  for(const el of blk.querySelectorAll('.u')){
-    for(const r of el.getClientRects()){
-      const dx=Math.max(r.left-e.clientX,0,e.clientX-r.right),dy=Math.max(r.top-e.clientY,0,e.clientY-r.bottom),sc=dy*1000+dx;
-      if(sc<score){score=sc;best=el}
-    }
+  for(const el of blk.querySelectorAll('.u'))for(const r of el.getClientRects()){
+    const dx=Math.max(r.left-e.clientX,0,e.clientX-r.right),dy=Math.max(r.top-e.clientY,0,e.clientY-r.bottom),sc=dy*1000+dx;
+    if(sc<score){score=sc;best=el}
   }
   return best;
 }
 document.addEventListener('click',e=>{
-  const g=e.target.closest('[data-go]');if(g){go(+g.dataset.go);return}
+  if(e.target.closest('#ov'))return;
+  if(e.target.closest('[data-ov]')){openOverview();return}
   const sm=e.target.closest('[data-sample]');if(sm){if(+sm.dataset.sample!==sampleN)load(+sm.dataset.sample);return}
   const x=e.target.closest('[data-x]');if(x){req.delete(x.dataset.x);render();return}
   const u=hit(e);
-  if(u){
-    const id=u.dataset.u;
-    if(req.has(id))req.delete(id);else req.set(id,{comment:''});
-    render();
-    $(`#paper textarea[data-c="${id}"]`)?.focus({preventScroll:true});
-  }
+  if(u){const id=u.dataset.u;if(req.has(id)){req.delete(id);render()}else{req.set(id,{comment:''});render(id)}}
 });
 document.addEventListener('input',e=>{const c=e.target.dataset?.c;if(c&&req.has(c)){req.get(c).comment=e.target.value;e.target.classList.remove('need')}});
 document.addEventListener('keydown',e=>{
+  if(!$('#ov').hidden){if(e.key==='Escape')closeOverview();return}
   const t=e.target;
   if(t.matches&&t.matches('textarea[data-c]')){
     if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){
       e.preventDefault();
-      const here=[...document.querySelectorAll('#paper textarea[data-c]')];
+      const here=[...t.closest('.paper').querySelectorAll('textarea[data-c]')];
       const empty=here.filter(x=>!x.value.trim());
       if(empty.length){empty.forEach(x=>x.classList.add('need'));empty[0].focus();toast(`주석이 비어 있는 요청이 ${empty.length}개 있어 보내지 않았습니다.`)}
       else toast(`화면 시안입니다. 이 쪽의 주석 ${here.length}개를 Claude에게 보내는 자리입니다.`);
     }
     return;
   }
-  if(e.key==='ArrowRight')go(page+1);
-  if(e.key==='ArrowLeft')go(page-1);
+  if(e.key==='ArrowRight'){e.preventDefault();goPage(Math.min(currentPage()+1,PAGES.length-1))}
+  if(e.key==='ArrowLeft'){e.preventDefault();goPage(Math.max(currentPage()-1,0))}
 });
 $('#export').onclick=()=>toast(req.size?`빨강 문장이 ${req.size}개 남아 있어 내보낼 수 없습니다.`:'화면 시안입니다. 내보내기는 다음 단계에서 연결합니다.');
 $('#back').onclick=()=>toast('화면 시안입니다. 첫 화면으로 돌아가는 자리입니다.');
