@@ -49,11 +49,7 @@ button{cursor:pointer}
 
 /* 가운데: 보고서 입력 */
 .center{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;padding-block:24px 32px}
-.mark{text-align:center;font-family:var(--f-mark);font-weight:700;font-size:clamp(28px,8vw,38px);letter-spacing:-.01em;margin:0;line-height:1.2}
-.mark .pen{position:relative;color:var(--accent)}
-.mark svg{position:absolute;left:-4%;bottom:-.32em;width:108%;height:.42em;overflow:visible}
-.mark path{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round}
-.sub{text-align:center;color:var(--muted);font-size:14px;margin:-8px 0 0}
+.sub{text-align:center;color:var(--ink);font-family:var(--f-mark);font-weight:600;font-size:clamp(19px,5.2vw,24px);line-height:1.4;margin:0;text-wrap:balance}
 .box{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:14px 14px 10px 18px;box-shadow:0 1px 2px rgba(40,30,20,.04),0 6px 22px rgba(40,30,20,.06);display:grid;gap:8px;transition:border-color .15s,box-shadow .15s}
 .box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .box textarea{border:0;background:none;outline:none;resize:none;width:100%;min-height:52px;max-height:40vh;line-height:1.6;font-size:15.5px;padding:2px 0}
@@ -98,10 +94,7 @@ button{cursor:pointer}
   </header>
 
   <main class="center">
-    <div>
-      <h1 class="mark">보고서 <span class="pen">주석<svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 C 14 2, 22 12, 34 6 S 56 2, 66 7 S 88 11, 98 4"/></svg></span></h1>
-    </div>
-    <p class="sub">만들 보고서의 주제와 방향을 적어 주세요.</p>
+    <h1 class="sub">만들 보고서의 주제와 방향을 적어 주세요.</h1>
     <form class="box" id="box">
       <textarea id="topic" rows="2" placeholder="예: 3분기 사내 문서 디지털화 추진 현황, 경영진 보고용으로 2쪽 분량"></textarea>
       <div class="chips" id="chips"></div>
